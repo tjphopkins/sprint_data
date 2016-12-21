@@ -26,7 +26,7 @@ def make_request(url):
         else:
             print response
     response_json = response.json()
-    documents = response_json['documents']
+    documents = response_json.get('documents')
     next_url = response_json.get('next_url')
     return documents, next_url
 
@@ -35,7 +35,7 @@ def get_and_write_documents(url, file):
     try:
         documents, next_url = make_request(url)
     except RateLimitExceeded as e:
-        sleep(e.time_to_reset + 1)
+        sleep(int(e.time_to_reset) + 1)
         documents, next_url = make_request(url)
 
     documents_string = ''

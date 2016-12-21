@@ -1,5 +1,13 @@
 import requests
 import json
+from time import sleep
+
+
+class RateLimitExceeded(Exception):
+
+    def __init__(self, time_to_reset):
+        self.time_to_reset = time_to_reset
+
 
 auth = ()
 
@@ -9,15 +17,23 @@ def set_auth(user, password):
     auth = (user, password)
 
 
-def make_request_inner(url):
-    response = requests.get(url, auth=auth).json()
-    documents = response['documents']
-    next_url = response.get('next_url')
+def make_request(url):
+    response = requests.get(url, auth=auth)
+    if response.status_code == 429:
+        time_to_sleep = response.headers['X-RateLimit-Reset']
+        raise RateLimitExceeded(time_to_sleep)
+    response_json = response.json()
+    documents = response_json['documents']
+    next_url = response_json.get('next_url')
     return documents, next_url
 
 
 def get_and_write_documents(url, file):
-    documents, next_url = make_request_inner(url)
+    try:
+        documents, next_url = make_request(url)
+    except RateLimitExceeded as e:
+        sleep(e.time_to_reset + 1)
+        documents, next_url = make_request(url)
 
     parsed_docs = json.loads(documents)
     documents_string = ''

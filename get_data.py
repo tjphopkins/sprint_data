@@ -41,7 +41,7 @@ def get_and_write_documents(url, file):
     documents_string = ''
     print "Request returned {docs} documents".format(docs=len(documents))
     for doc in documents:
-        documents_string += json.dumps(doc, indent=4, sort_keys=True) + '\n\n'
+        documents_string += json.dumps(doc) + '\n'
     file.write(documents_string)
 
     if next_url is None:
@@ -51,7 +51,7 @@ def get_and_write_documents(url, file):
 
 
 def start(start_date, end_date):
-    with open("sprint_agent_events.txt", "w") as text_file:
+    with open("sprint_agent_events_2.txt", "w") as text_file:
         url = 'https://api.conversocial.com/v3.0/agent_events?' \
             'timestamp_from={s}&timestamp_to={e}'.format(
                 s=start_date, e=end_date)

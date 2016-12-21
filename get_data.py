@@ -19,9 +19,12 @@ def set_auth(user, password):
 
 def make_request(url):
     response = requests.get(url, auth=auth)
-    if response.status_code == 429:
-        time_to_sleep = response.headers['X-RateLimit-Reset']
-        raise RateLimitExceeded(time_to_sleep)
+    if response.status_code != 200:
+        if response.status_code == 429:
+            time_to_sleep = response.headers['X-RateLimit-Reset']
+            raise RateLimitExceeded(time_to_sleep)
+        else:
+            print response
     response_json = response.json()
     documents = response_json['documents']
     next_url = response_json.get('next_url')
@@ -35,22 +38,21 @@ def get_and_write_documents(url, file):
         sleep(e.time_to_reset + 1)
         documents, next_url = make_request(url)
 
-    parsed_docs = json.loads(documents)
     documents_string = ''
-    for doc in parsed_docs:
-        documents_string += json.dumps(doc, indent=4, sort_keys=True) + '\n'
-    file.seek(2)
+    print "Request returned {docs} documents".format(docs=len(documents))
+    for doc in documents:
+        documents_string += json.dumps(doc, indent=4, sort_keys=True) + '\n\n'
     file.write(documents_string)
 
     if next_url is None:
         return
 
-    get_and_write_documents(next_url)
+    get_and_write_documents(next_url, file)
 
 
 def start(start_date, end_date):
-    text_file = open("sprint_agent_events.txt", "w")
-    url = 'https://api.conversocial.com/v3.0/agent_events?' \
-        'timestamp_from={s}&timestamp_to={e}'.format(s=start_date, e=end_date)
-    get_and_write_documents(url, text_file)
-    text_file.close()
+    with open("sprint_agent_events.txt", "w") as text_file:
+        url = 'https://api.conversocial.com/v3.0/agent_events?' \
+            'timestamp_from={s}&timestamp_to={e}'.format(
+                s=start_date, e=end_date)
+        get_and_write_documents(url, text_file)
